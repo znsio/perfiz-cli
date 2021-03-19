@@ -10,7 +10,7 @@ jobs:
         os: [macOS-latest]
 
     steps:
-      - uses: actions/checkout@latest
+      - uses: actions/checkout@v1
       - uses: DeLaGuardo/setup-graalvm@4.0
         with:
           # GraalVM version, no pattern syntax available atm
