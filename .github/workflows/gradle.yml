@@ -22,7 +22,7 @@ jobs:
       - run: java -version
       - run: gu install native-image
       - name: Build with Gradle
-        run: ./gradlew build
+        run: ./gradlew nativeImage
       - name: Rename the artifact to OS-unique name
         shell: bash
         run: |
