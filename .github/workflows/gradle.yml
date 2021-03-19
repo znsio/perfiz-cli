@@ -29,9 +29,9 @@ jobs:
       - name: Rename the artifact to OS-unique name
         shell: bash
         run: |
-          value=`cp build/native-image/perfiz build/graal/perfiz-${{ matrix.os }}`
+          value=`cp build/native-image/perfiz build/native-image/perfiz-${{ matrix.os }}`
       - name: Publish artifact
         uses: actions/upload-artifact@master
         with:
           name: perfiz-${{ matrix.os }}
-          path: build/graal
+          path: build/native-image
