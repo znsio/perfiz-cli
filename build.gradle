@@ -35,7 +35,7 @@ dependencies {
 
 kapt {
     arguments {
-        arg("periz-cli", "org.znsio.perfiz/perfiz-cli")
+        arg("perfiz-cli", "org.znsio.perfiz/perfiz-cli")
     }
 }
 

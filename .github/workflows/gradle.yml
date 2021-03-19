@@ -23,10 +23,13 @@ jobs:
       - run: gu install native-image
       - name: Build with Gradle
         run: ./gradlew nativeImage
+      - name: ls build
+        shell: bash
+        run: ls -lRt build
       - name: Rename the artifact to OS-unique name
         shell: bash
         run: |
-          value=`cp build/graal/perfiz build/graal/perfiz-${{ matrix.os }}`
+          value=`cp build/graal/perfiz-cli build/graal/perfiz-${{ matrix.os }}`
       - name: Publish artifact
         uses: actions/upload-artifact@master
         with:
