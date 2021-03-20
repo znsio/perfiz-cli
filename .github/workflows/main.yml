@@ -1,0 +1,25 @@
+on: [push]
+name: Cross Compile
+jobs:
+  cross-compile:
+    strategy:
+      matrix:
+        go-version: [1.16.x]
+        os: [macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Install goxc
+        run: go get github.com/laher/goxc
+      - name: Checkout code
+        uses: actions/checkout@v1
+      - name: Test
+        run: make compile
+      - name: Publish artifact
+        uses: actions/upload-artifact@master
+        with:
+          name: perfiz-${{ matrix.os }}
+          path: artifacts
