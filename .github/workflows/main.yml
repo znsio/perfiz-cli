@@ -13,10 +13,10 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
       - name: Install goxc
-        run: go get github.com/laher/goxc
+        run: go get github.com/laher/goxc; goxc -t
       - name: Checkout code
         uses: actions/checkout@v1
-      - name: Test
+      - name: Make
         run: make compile
       - name: Publish artifact
         uses: actions/upload-artifact@master
