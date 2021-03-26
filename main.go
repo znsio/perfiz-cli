@@ -27,7 +27,7 @@ func main() {
 		Use:   "start",
 		Short: "Start Perfiz",
 		Long:  `Start Perfiz Docker Containers and run load test`,
-		Args: cobra.MinimumNArgs(0),
+		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 			workingDir, _ := os.Getwd()
 			log.Println("Starting Perfiz...")
@@ -48,8 +48,8 @@ func main() {
 				log.Fatal(configParseError)
 			}
 			karateFeaturesDir := workingDir + "/" + perfizConfig.KarateFeaturesDir
-			if IsDir(karateFeaturesDir) {
-				log.Println("Configuration error in perfiz.yml. karateFeaturesDir: " + perfizConfig.KarateFeaturesDir + ". Please note that karateFeaturesDir has to be relative to perfiz.yml location.")
+			if !IsDir(karateFeaturesDir) {
+				log.Fatalln("Configuration error in perfiz.yml. karateFeaturesDir: " + perfizConfig.KarateFeaturesDir + ". " + karateFeaturesDir + " is not a directory. Please note that karateFeaturesDir has to be relative to perfiz.yml location.")
 			}
 			if IsDir(GRAFANA_DASHBOARDS_DIRECTORY) {
 				log.Println("Copying Grafana Dashboard jsons in " + GRAFANA_DASHBOARDS_DIRECTORY)
@@ -100,7 +100,7 @@ func main() {
 		Use:   "stop",
 		Short: "Stop Perfiz",
 		Long:  `Stop Perfiz Docker Containers`,
-		Args: cobra.MinimumNArgs(0),
+		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("Stopping Perfiz...")
 			perfizHome := os.Getenv(PERFIZ_HOME_ENV_VARIABLE)
