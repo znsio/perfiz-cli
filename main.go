@@ -51,6 +51,11 @@ func main() {
 			if !IsDir(karateFeaturesDir) {
 				log.Fatalln("Configuration error in perfiz.yml. karateFeaturesDir: " + perfizConfig.KarateFeaturesDir + ". " + karateFeaturesDir + " is not a directory. Please note that karateFeaturesDir has to be relative to perfiz.yml location.")
 			}
+
+			checkIfCommandExists("docker")
+
+			checkIfCommandExists("docker-compose")
+
 			if IsDir(GRAFANA_DASHBOARDS_DIRECTORY) {
 				log.Println("Copying Grafana Dashboard jsons in " + GRAFANA_DASHBOARDS_DIRECTORY)
 				copy.Copy(GRAFANA_DASHBOARDS_DIRECTORY, perfizHome+"/prometheus-metrics-monitor/grafana/dashboards")
@@ -121,6 +126,15 @@ func main() {
 	var rootCmd = &cobra.Command{Use: "perfiz-cli"}
 	rootCmd.AddCommand(cmdStart, cmdStop)
 	rootCmd.Execute()
+}
+
+func checkIfCommandExists(command string) {
+	path, err := exec.LookPath(command)
+	if err != nil {
+		log.Fatalln(command + " not found, please install. Error: ", err)
+	}
+
+	log.Println(command + " command located: " + path)
 }
 
 func IsDir(pathFile string) bool {
