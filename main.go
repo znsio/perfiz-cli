@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/otiai10/copy"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -67,8 +68,9 @@ func main() {
 			}
 			log.Println("Starting Perfiz Docker Containers...")
 			dockerComposeUp := exec.Command("docker-compose", "-f", perfizHome+"/docker-compose.yml", "up", "-d")
-			dockerComposeUpOutput, dockerComposeUpError := dockerComposeUp.Output()
+			dockerComposeUpOutput, dockerComposeUpError := dockerComposeUp.CombinedOutput()
 			if dockerComposeUpError != nil {
+				log.Println(fmt.Sprint(dockerComposeUpError) + ": " + string(dockerComposeUpOutput))
 				log.Fatalln(dockerComposeUpError.Error())
 			}
 			log.Println(string(dockerComposeUpOutput))
@@ -93,8 +95,9 @@ func main() {
 			)
 			log.Println("Starting Gatling Tests...")
 			log.Println(dockerRun)
-			dockerRunOutput, dockerRunError := dockerRun.Output()
+			dockerRunOutput, dockerRunError := dockerRun.CombinedOutput()
 			if dockerRunError != nil {
+				log.Println(fmt.Sprint(dockerRunError) + ": " + string(dockerRunOutput))
 				log.Fatalln(dockerRunError.Error())
 			}
 			log.Println(string(dockerRunOutput))
