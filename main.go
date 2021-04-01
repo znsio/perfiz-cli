@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/otiai10/copy"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -95,12 +97,16 @@ func main() {
 			)
 			log.Println("Starting Gatling Tests...")
 			log.Println(dockerRun)
-			dockerRunOutput, dockerRunError := dockerRun.CombinedOutput()
-			if dockerRunError != nil {
-				log.Println(fmt.Sprint(dockerRunError) + ": " + string(dockerRunOutput))
-				log.Fatalln(dockerRunError.Error())
-			}
-			log.Println(string(dockerRunOutput))
+			dockerRunOutput, _ := dockerRun.StdoutPipe()
+			dockerRunError, _ := dockerRun.StderrPipe()
+
+			dockerRun.Start()
+
+			logStreamingOutput(dockerRunOutput)
+
+			logStreamingOutput(dockerRunError)
+
+			dockerRun.Wait()
 		},
 	}
 
@@ -131,10 +137,18 @@ func main() {
 	rootCmd.Execute()
 }
 
+func logStreamingOutput(output io.ReadCloser) {
+	outputScanner := bufio.NewScanner(output)
+	outputScanner.Split(bufio.ScanLines)
+	for outputScanner.Scan() {
+		log.Println(outputScanner.Text())
+	}
+}
+
 func checkIfCommandExists(command string) {
 	path, err := exec.LookPath(command)
 	if err != nil {
-		log.Fatalln(command + " not found, please install. Error: ", err)
+		log.Fatalln(command+" not found, please install. Error: ", err)
 	}
 
 	log.Println(command + " command located: " + path)
