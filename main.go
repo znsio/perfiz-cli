@@ -85,7 +85,7 @@ func main() {
 			filepath.Walk(perfizHome+"/src/test/scala/", func(path string, info os.FileInfo, err error) error {
 				if err == nil && libRegEx.MatchString(info.Name()) && !strings.Contains(info.Name(), "Perfiz") {
 					log.Println("Removing " + info.Name())
-					os.Remove(info.Name())
+					os.Remove(path)
 				}
 				return nil
 			})
