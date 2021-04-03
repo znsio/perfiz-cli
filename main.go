@@ -12,6 +12,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strings"
 )
 
 const (
@@ -22,7 +24,8 @@ const (
 )
 
 type PerfizConfig struct {
-	KarateFeaturesDir string `yaml:"karateFeaturesDir"`
+	KarateFeaturesDir     string `yaml:"karateFeaturesDir"`
+	GatlingSimulationsDir string `yaml:"gatlingSimulationsDir"`
 }
 
 func main() {
@@ -54,6 +57,10 @@ func main() {
 			if !IsDir(karateFeaturesDir) {
 				log.Fatalln("Configuration error in perfiz.yml. karateFeaturesDir: " + perfizConfig.KarateFeaturesDir + ". " + karateFeaturesDir + " is not a directory. Please note that karateFeaturesDir has to be relative to perfiz.yml location.")
 			}
+			gatlingSimulationsDir := getGatlingSimulationsDir(workingDir, perfizConfig)
+			if gatlingSimulationsDir != "" && !IsDir(gatlingSimulationsDir) {
+				log.Fatalln("Configuration error in perfiz.yml. karateFeaturesDir: " + perfizConfig.KarateFeaturesDir + ". " + karateFeaturesDir + " is not a directory. Please note that karateFeaturesDir has to be relative to perfiz.yml location.")
+			}
 
 			checkIfCommandExists("docker")
 
@@ -67,6 +74,30 @@ func main() {
 			if prometheusConfigErr == nil {
 				log.Println("Copying prometheus.yml in " + PROMETHEUS_CONFIG)
 				copy.Copy(PROMETHEUS_CONFIG, perfizHome+"/prometheus-metrics-monitor/prometheus/prometheus.yml")
+			}
+			log.Println("Resetting Gatling Simulations")
+
+			libRegEx, e := regexp.Compile("^*.scala")
+			if e != nil {
+				log.Fatal(e)
+			}
+
+			filepath.Walk(perfizHome+"/src/test/scala/", func(path string, info os.FileInfo, err error) error {
+				if err == nil && libRegEx.MatchString(info.Name()) && !strings.Contains(info.Name(), "Perfiz") {
+					log.Println("Removing " + info.Name())
+					os.Remove(info.Name())
+				}
+				return nil
+			})
+
+			if gatlingSimulationsDir != "" {
+				log.Println("Copying Gatling Simulations in " + gatlingSimulationsDir)
+				onlyScalaSimulationFiles := copy.Options{
+					Skip: func(src string) (bool, error) {
+						return !IsDir(src) && !strings.HasSuffix(src, ".scala"), nil
+					},
+				}
+				copy.Copy(gatlingSimulationsDir, perfizHome+"/src/test/scala", onlyScalaSimulationFiles)
 			}
 			log.Println("Starting Perfiz Docker Containers...")
 			dockerComposeUp := exec.Command("docker-compose", "-f", perfizHome+"/docker-compose.yml", "up", "-d")
@@ -135,6 +166,13 @@ func main() {
 	var rootCmd = &cobra.Command{Use: "perfiz-cli"}
 	rootCmd.AddCommand(cmdStart, cmdStop)
 	rootCmd.Execute()
+}
+
+func getGatlingSimulationsDir(workingDir string, config *PerfizConfig) string {
+	if config.GatlingSimulationsDir == "" {
+		return ""
+	}
+	return workingDir + "/" + config.GatlingSimulationsDir
 }
 
 func logStreamingOutput(output io.ReadCloser) {
