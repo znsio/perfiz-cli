@@ -20,7 +20,8 @@ const (
 	PERFIZ_HOME_ENV_VARIABLE     = "PERFIZ_HOME"
 	PERFIZ_YML                   = "perfiz.yml"
 	GRAFANA_DASHBOARDS_DIRECTORY = "./perfiz/dashboards"
-	PROMETHEUS_CONFIG            = "./perfiz/prometheus/prometheus.yml"
+	PROMETHEUS_CONFIG_DIR        = "./perfiz/prometheus"
+	PROMETHEUS_CONFIG            = PROMETHEUS_CONFIG_DIR + "/prometheus.yml"
 )
 
 type PerfizConfig struct {
@@ -59,6 +60,40 @@ func main() {
 			}
 			log.Println(string(dockerComposeUpOutput))
 			log.Println("Navigate to http://localhost:3000 for Grafana")
+		},
+	}
+
+	var cmdInit = &cobra.Command{
+		Use:   "init",
+		Short: "Add Perfiz Config Templates and Dirs",
+		Long: `Add Perfiz Config YML template, Directories for Grafana Dashboards,
+                Prometheus Configs and update .gitignore`,
+		Args: cobra.MinimumNArgs(0),
+		Run: func(cmd *cobra.Command, args []string) {
+			log.Println("Staring Init")
+			perfizHome := getEnvVariable(PERFIZ_HOME_ENV_VARIABLE)
+			_, perfizYmlErr := os.Open(PERFIZ_YML)
+			if perfizYmlErr != nil {
+				log.Println(PERFIZ_YML + " not found. Adding template.")
+				copy.Copy(perfizHome+"/templates/"+PERFIZ_YML, "./"+PERFIZ_YML)
+			} else {
+				log.Println(PERFIZ_YML + " is already present. Skipping.")
+			}
+			if !IsDir(GRAFANA_DASHBOARDS_DIRECTORY) {
+				log.Println("Creating Grafana Dashboard dir " + GRAFANA_DASHBOARDS_DIRECTORY + ". Add Grafana Dashboard JSONs here.")
+				os.MkdirAll(GRAFANA_DASHBOARDS_DIRECTORY, 0755)
+			} else {
+				log.Println(GRAFANA_DASHBOARDS_DIRECTORY + " is already present. Skipping.")
+			}
+			_, prometheusConfigErr := os.Open(PROMETHEUS_CONFIG)
+			if prometheusConfigErr != nil {
+				log.Println("Creating prometheus.yml template in " + PROMETHEUS_CONFIG + ". Add scrape configs to this file.")
+				os.MkdirAll(PROMETHEUS_CONFIG_DIR, 0755)
+				copy.Copy(perfizHome+"/templates/prometheus.yml", PROMETHEUS_CONFIG)
+			} else {
+				log.Println(PROMETHEUS_CONFIG + " is already present. Skipping.")
+			}
+			log.Println("Init Completed")
 		},
 	}
 
@@ -170,7 +205,7 @@ func main() {
 	}
 
 	var rootCmd = &cobra.Command{Use: "perfiz-cli"}
-	rootCmd.AddCommand(cmdStart, cmdTest, cmdStop)
+	rootCmd.AddCommand(cmdInit, cmdStart, cmdTest, cmdStop)
 	rootCmd.Execute()
 }
 
