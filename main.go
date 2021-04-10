@@ -36,15 +36,8 @@ func main() {
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("Starting Perfiz...")
-			perfizHome := os.Getenv(PERFIZ_HOME_ENV_VARIABLE)
-			if len(perfizHome) == 0 {
-				log.Fatalln("Please set " + PERFIZ_HOME_ENV_VARIABLE + " environment variable")
-			} else {
-				log.Println(PERFIZ_HOME_ENV_VARIABLE + ": " + perfizHome)
-			}
-
+			perfizHome := getEnvVariable(PERFIZ_HOME_ENV_VARIABLE)
 			checkIfCommandExists("docker")
-
 			checkIfCommandExists("docker-compose")
 
 			if IsDir(GRAFANA_DASHBOARDS_DIRECTORY) {
@@ -76,12 +69,10 @@ func main() {
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 			workingDir, _ := os.Getwd()
-			perfizHome := os.Getenv(PERFIZ_HOME_ENV_VARIABLE)
-			if len(perfizHome) == 0 {
-				log.Fatalln("Please set " + PERFIZ_HOME_ENV_VARIABLE + " environment variable")
-			} else {
-				log.Println(PERFIZ_HOME_ENV_VARIABLE + ": " + perfizHome)
-			}
+			perfizHome := getEnvVariable(PERFIZ_HOME_ENV_VARIABLE)
+			checkIfCommandExists("docker")
+			checkIfCommandExists("docker-compose")
+
 			_, perfizYmlErr := os.Open(PERFIZ_YML)
 			if perfizYmlErr != nil {
 				log.Fatalln(PERFIZ_YML+" not found. Please see https://github.com/znsio/perfiz for instructions", perfizYmlErr)
@@ -98,10 +89,8 @@ func main() {
 			}
 			gatlingSimulationsDir := getGatlingSimulationsDir(workingDir, perfizConfig)
 			if gatlingSimulationsDir != "" && !IsDir(gatlingSimulationsDir) {
-				log.Fatalln("Configuration error in perfiz.yml. karateFeaturesDir: " + perfizConfig.KarateFeaturesDir + ". " + karateFeaturesDir + " is not a directory. Please note that karateFeaturesDir has to be relative to perfiz.yml location.")
+				log.Fatalln("Configuration error in perfiz.yml. gatlingSimulationsDir: " + perfizConfig.GatlingSimulationsDir + ". " + gatlingSimulationsDir + " is not a directory. Please note that gatlingSimulationsDir has to be relative to perfiz.yml location.")
 			}
-
-			checkIfCommandExists("docker")
 
 			libRegEx, e := regexp.Compile("^*.scala")
 			if e != nil {
@@ -207,6 +196,15 @@ func checkIfCommandExists(command string) {
 	}
 
 	log.Println(command + " command located: " + path)
+}
+
+func getEnvVariable(envVariableName string) string {
+	envVariable := os.Getenv(envVariableName)
+	if len(envVariable) == 0 {
+		log.Fatalln("Please set " + envVariableName + " environment variable")
+	}
+	log.Println(envVariableName + ": " + envVariable)
+	return envVariable
 }
 
 func IsDir(pathFile string) bool {
