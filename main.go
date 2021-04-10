@@ -31,12 +31,51 @@ type PerfizConfig struct {
 func main() {
 	var cmdStart = &cobra.Command{
 		Use:   "start",
-		Short: "Start Perfiz",
-		Long:  `Start Perfiz Docker Containers and run load test`,
+		Short: "Start Perfiz Monitoring Stack",
+		Long:  `Start Grafana, Prometheus and other Monitoring Stack Docker Containers`,
+		Args:  cobra.MinimumNArgs(0),
+		Run: func(cmd *cobra.Command, args []string) {
+			log.Println("Starting Perfiz...")
+			perfizHome := os.Getenv(PERFIZ_HOME_ENV_VARIABLE)
+			if len(perfizHome) == 0 {
+				log.Fatalln("Please set " + PERFIZ_HOME_ENV_VARIABLE + " environment variable")
+			} else {
+				log.Println(PERFIZ_HOME_ENV_VARIABLE + ": " + perfizHome)
+			}
+
+			checkIfCommandExists("docker")
+
+			checkIfCommandExists("docker-compose")
+
+			if IsDir(GRAFANA_DASHBOARDS_DIRECTORY) {
+				log.Println("Copying Grafana Dashboard jsons in " + GRAFANA_DASHBOARDS_DIRECTORY)
+				copy.Copy(GRAFANA_DASHBOARDS_DIRECTORY, perfizHome+"/prometheus-metrics-monitor/grafana/dashboards")
+			}
+			_, prometheusConfigErr := os.Open(PROMETHEUS_CONFIG)
+			if prometheusConfigErr == nil {
+				log.Println("Copying prometheus.yml in " + PROMETHEUS_CONFIG)
+				copy.Copy(PROMETHEUS_CONFIG, perfizHome+"/prometheus-metrics-monitor/prometheus/prometheus.yml")
+			}
+
+			log.Println("Starting Perfiz Docker Containers...")
+			dockerComposeUp := exec.Command("docker-compose", "-f", perfizHome+"/docker-compose.yml", "up", "-d")
+			dockerComposeUpOutput, dockerComposeUpError := dockerComposeUp.CombinedOutput()
+			if dockerComposeUpError != nil {
+				log.Println(fmt.Sprint(dockerComposeUpError) + ": " + string(dockerComposeUpOutput))
+				log.Fatalln(dockerComposeUpError.Error())
+			}
+			log.Println(string(dockerComposeUpOutput))
+			log.Println("Navigate to http://localhost:3000 for Grafana")
+		},
+	}
+
+	var cmdTest = &cobra.Command{
+		Use:   "test",
+		Short: "Run Gatling Performance Test",
+		Long:  `Run Gatling Performance Tests as per the configuration in perfiz.yml`,
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 			workingDir, _ := os.Getwd()
-			log.Println("Starting Perfiz...")
 			perfizHome := os.Getenv(PERFIZ_HOME_ENV_VARIABLE)
 			if len(perfizHome) == 0 {
 				log.Fatalln("Please set " + PERFIZ_HOME_ENV_VARIABLE + " environment variable")
@@ -64,19 +103,6 @@ func main() {
 
 			checkIfCommandExists("docker")
 
-			checkIfCommandExists("docker-compose")
-
-			if IsDir(GRAFANA_DASHBOARDS_DIRECTORY) {
-				log.Println("Copying Grafana Dashboard jsons in " + GRAFANA_DASHBOARDS_DIRECTORY)
-				copy.Copy(GRAFANA_DASHBOARDS_DIRECTORY, perfizHome+"/prometheus-metrics-monitor/grafana/dashboards")
-			}
-			_, prometheusConfigErr := os.Open(PROMETHEUS_CONFIG)
-			if prometheusConfigErr == nil {
-				log.Println("Copying prometheus.yml in " + PROMETHEUS_CONFIG)
-				copy.Copy(PROMETHEUS_CONFIG, perfizHome+"/prometheus-metrics-monitor/prometheus/prometheus.yml")
-			}
-			log.Println("Resetting Gatling Simulations")
-
 			libRegEx, e := regexp.Compile("^*.scala")
 			if e != nil {
 				log.Fatal(e)
@@ -99,15 +125,6 @@ func main() {
 				}
 				copy.Copy(gatlingSimulationsDir, perfizHome+"/src/test/scala", onlyScalaSimulationFiles)
 			}
-			log.Println("Starting Perfiz Docker Containers...")
-			dockerComposeUp := exec.Command("docker-compose", "-f", perfizHome+"/docker-compose.yml", "up", "-d")
-			dockerComposeUpOutput, dockerComposeUpError := dockerComposeUp.CombinedOutput()
-			if dockerComposeUpError != nil {
-				log.Println(fmt.Sprint(dockerComposeUpError) + ": " + string(dockerComposeUpOutput))
-				log.Fatalln(dockerComposeUpError.Error())
-			}
-			log.Println(string(dockerComposeUpOutput))
-			log.Println("Navigate to http://localhost:3000 for Grafana")
 
 			perfizMavenRepo := perfizHome + "/.m2"
 			if IsDir(perfizMavenRepo) {
@@ -143,8 +160,8 @@ func main() {
 
 	var cmdStop = &cobra.Command{
 		Use:   "stop",
-		Short: "Stop Perfiz",
-		Long:  `Stop Perfiz Docker Containers`,
+		Short: "Stop Perfiz Monitoring Stack",
+		Long:  `Stop all Perfiz related Docker Containers`,
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("Stopping Perfiz...")
@@ -164,7 +181,7 @@ func main() {
 	}
 
 	var rootCmd = &cobra.Command{Use: "perfiz-cli"}
-	rootCmd.AddCommand(cmdStart, cmdStop)
+	rootCmd.AddCommand(cmdStart, cmdTest, cmdStop)
 	rootCmd.Execute()
 }
 
