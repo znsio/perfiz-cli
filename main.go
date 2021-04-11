@@ -41,15 +41,9 @@ func main() {
 			checkIfCommandExists("docker")
 			checkIfCommandExists("docker-compose")
 
-			if IsDir(GRAFANA_DASHBOARDS_DIRECTORY) {
-				log.Println("Copying Grafana Dashboard jsons in " + GRAFANA_DASHBOARDS_DIRECTORY)
-				copy.Copy(GRAFANA_DASHBOARDS_DIRECTORY, perfizHome+"/prometheus-metrics-monitor/grafana/dashboards")
-			}
-			_, prometheusConfigErr := os.Open(PROMETHEUS_CONFIG)
-			if prometheusConfigErr == nil {
-				log.Println("Copying prometheus.yml in " + PROMETHEUS_CONFIG)
-				copy.Copy(PROMETHEUS_CONFIG, perfizHome+"/prometheus-metrics-monitor/prometheus/prometheus.yml")
-			}
+			workingDir, _ := os.Getwd()
+			log.Println("Writing working directory to docker-compose .env: " + workingDir)
+			ioutil.WriteFile(perfizHome+"/.env", []byte("PROJECT_DIR="+workingDir), 0755)
 
 			log.Println("Starting Perfiz Docker Containers...")
 			dockerComposeUp := exec.Command("docker-compose", "-f", perfizHome+"/docker-compose.yml", "up", "-d")
@@ -94,6 +88,8 @@ func main() {
 				log.Println(PROMETHEUS_CONFIG + " is already present. Skipping.")
 			}
 			log.Println("Init Completed")
+			log.Println("Please add below line to your .gitignore to avoid checking in Prometheus and Grafana Data to version control")
+			log.Println("perfiz/*_data")
 		},
 	}
 
