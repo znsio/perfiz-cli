@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"github.com/otiai10/copy"
 	"github.com/spf13/cobra"
@@ -18,7 +19,7 @@ import (
 
 const (
 	PERFIZ_HOME_ENV_VARIABLE     = "PERFIZ_HOME"
-	PERFIZ_YML                   = "perfiz.yml"
+	DEFAULT_CONFIG_FILE          = "perfiz.yml"
 	GRAFANA_DASHBOARDS_DIRECTORY = "./perfiz/dashboards"
 	PROMETHEUS_CONFIG_DIR        = "./perfiz/prometheus"
 	PROMETHEUS_CONFIG            = PROMETHEUS_CONFIG_DIR + "/prometheus.yml"
@@ -66,12 +67,12 @@ func main() {
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("Staring Init")
 			perfizHome := getEnvVariable(PERFIZ_HOME_ENV_VARIABLE)
-			_, perfizYmlErr := os.Open(PERFIZ_YML)
+			_, perfizYmlErr := os.Open(DEFAULT_CONFIG_FILE)
 			if perfizYmlErr != nil {
-				log.Println(PERFIZ_YML + " not found. Adding template.")
-				copy.Copy(perfizHome+"/templates/"+PERFIZ_YML, "./"+PERFIZ_YML)
+				log.Println(DEFAULT_CONFIG_FILE + " not found. Adding template.")
+				copy.Copy(perfizHome+"/templates/"+DEFAULT_CONFIG_FILE, "./"+DEFAULT_CONFIG_FILE)
 			} else {
-				log.Println(PERFIZ_YML + " is already present. Skipping.")
+				log.Println(DEFAULT_CONFIG_FILE + " is already present. Skipping.")
 			}
 			if !IsDir(GRAFANA_DASHBOARDS_DIRECTORY) {
 				log.Println("Creating Grafana Dashboard dir " + GRAFANA_DASHBOARDS_DIRECTORY + ". Add Grafana Dashboard JSONs here.")
@@ -94,22 +95,39 @@ func main() {
 	}
 
 	var cmdTest = &cobra.Command{
-		Use:   "test",
+		Use:   "test [perfiz config file name]",
 		Short: "Run Gatling Performance Test",
 		Long:  `Run Gatling Performance Tests as per the configuration in perfiz.yml`,
-		Args:  cobra.MinimumNArgs(0),
+		Args: func(cmd *cobra.Command, args []string) error {
+			_, perfizYmlErr := os.Open(DEFAULT_CONFIG_FILE)
+			if len(args) < 1 {
+				if perfizYmlErr != nil {
+					return errors.New("Default Config: " + DEFAULT_CONFIG_FILE + " not found. Please create " + DEFAULT_CONFIG_FILE + " or provide name of config file as argument. Please see https://github.com/znsio/perfiz for instructions.")
+				} else {
+					return nil
+				}
+			}
+			_, customPerfizYmlErr := os.Open(args[0])
+			if customPerfizYmlErr != nil {
+				return errors.New("Config: " + args[0] + " not found.")
+			}
+			return nil
+		},
 		Run: func(cmd *cobra.Command, args []string) {
 			workingDir, _ := os.Getwd()
 			perfizHome := getEnvVariable(PERFIZ_HOME_ENV_VARIABLE)
 			checkIfCommandExists("docker")
 			checkIfCommandExists("docker-compose")
 
-			_, perfizYmlErr := os.Open(PERFIZ_YML)
-			if perfizYmlErr != nil {
-				log.Fatalln(PERFIZ_YML+" not found. Please see https://github.com/znsio/perfiz for instructions", perfizYmlErr)
+			var configFile string
+			if len(args) == 1 {
+				configFile = args[0]
+			} else {
+				configFile = DEFAULT_CONFIG_FILE
 			}
+			log.Println("Perfiz Config File: " + configFile)
 			perfizConfig := &PerfizConfig{}
-			b, _ := ioutil.ReadFile(PERFIZ_YML)
+			b, _ := ioutil.ReadFile(configFile)
 			configParseError := yaml.Unmarshal(b, perfizConfig)
 			if configParseError != nil {
 				log.Fatal(configParseError)
@@ -157,7 +175,7 @@ func main() {
 				"-v", perfizMavenRepo+":/root/.m2",
 				"-v", perfizHome+":/usr/src/performance-testing",
 				"-v", karateFeaturesDir+":/usr/src/karate-features",
-				"-v", workingDir+"/"+PERFIZ_YML+":/usr/src/perfiz.yml",
+				"-v", workingDir+"/"+configFile+":/usr/src/perfiz.yml",
 				"-e", "KARATE_FEATURES=/usr/src/karate-features",
 				"-w", "/usr/src/performance-testing",
 				"--network", "perfiz-network",
