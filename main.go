@@ -27,6 +27,7 @@ const (
 
 type PerfizConfig struct {
 	KarateFeaturesDir     string `yaml:"karateFeaturesDir"`
+	KarateEnv             string `yaml:"karateEnv"`
 	GatlingSimulationsDir string `yaml:"gatlingSimulationsDir"`
 }
 
@@ -181,16 +182,22 @@ func main() {
 
 			log.Println("All checks done.")
 
-			dockerRun := exec.Command("docker", "run", "--rm", "--name", "perfiz-gatling",
-				"-v", perfizMavenRepo+":/root/.m2",
-				"-v", perfizHome+":/usr/src/performance-testing",
-				"-v", karateFeaturesDir+":/usr/src/karate-features",
-				"-v", workingDir+"/"+configFile+":/usr/src/perfiz.yml",
+			dockerCommandArguments := []string{"run", "--rm", "--name", "perfiz-gatling",
+				"-v", perfizMavenRepo + ":/root/.m2",
+				"-v", perfizHome + ":/usr/src/performance-testing",
+				"-v", karateFeaturesDir + ":/usr/src/karate-features",
+				"-v", workingDir + "/" + configFile + ":/usr/src/perfiz.yml",
 				"-e", "KARATE_FEATURES=/usr/src/karate-features",
 				"-w", "/usr/src/performance-testing",
 				"--network", "perfiz-network",
-				"maven:3.6-jdk-8", "mvn", "clean", "test-compile", "gatling:test", "-DPERFIZ=/usr/src/perfiz.yml",
-			)
+				"maven:3.6-jdk-8", "mvn", "clean", "test-compile", "gatling:test", "-DPERFIZ=/usr/src/perfiz.yml"}
+
+			if perfizConfig.KarateEnv != "" {
+				log.Println("Setting karate.env to " + perfizConfig.KarateEnv)
+				dockerCommandArguments = append(dockerCommandArguments, "-Dkarate.env="+perfizConfig.KarateEnv)
+			}
+
+			dockerRun := exec.Command("docker", dockerCommandArguments...)
 			log.Println("Starting Gatling Tests...")
 			log.Println(dockerRun)
 			dockerRunOutput, _ := dockerRun.StdoutPipe()
