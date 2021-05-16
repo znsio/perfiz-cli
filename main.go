@@ -171,6 +171,16 @@ func main() {
 				log.Println(perfizMavenRepo + " does not exist. Maven dependencies will be run downloaded. This may take a while...")
 			}
 
+			dockerNetworkCheck := exec.Command("docker", "network", "inspect", "perfiz-network")
+			log.Println("Running checks...")
+
+			_, dockerNetworkCheckError := dockerNetworkCheck.Output()
+			if dockerNetworkCheckError != nil {
+				log.Fatalln("Error locating docker network perfiz-network. Try running perfiz 'start' command before running 'test'.")
+			}
+
+			log.Println("All checks done.")
+
 			dockerRun := exec.Command("docker", "run", "--rm", "--name", "perfiz-gatling",
 				"-v", perfizMavenRepo+":/root/.m2",
 				"-v", perfizHome+":/usr/src/performance-testing",
