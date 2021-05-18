@@ -78,6 +78,8 @@ func main() {
 			if !IsDir(GRAFANA_DASHBOARDS_DIRECTORY) {
 				log.Println("Creating Grafana Dashboard dir " + GRAFANA_DASHBOARDS_DIRECTORY + ". Add Grafana Dashboard JSONs here.")
 				os.MkdirAll(GRAFANA_DASHBOARDS_DIRECTORY, 0755)
+				log.Println("Adding sample dashboard json " + GRAFANA_DASHBOARDS_DIRECTORY + "/dashboard.json as a reference to get you started.")
+				copy.Copy(perfizHome+"/templates/dashboard.json", GRAFANA_DASHBOARDS_DIRECTORY + "/dashboard.json")
 			} else {
 				log.Println(GRAFANA_DASHBOARDS_DIRECTORY + " is already present. Skipping.")
 			}
