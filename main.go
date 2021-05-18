@@ -79,7 +79,7 @@ func main() {
 				log.Println("Creating Grafana Dashboard dir " + GRAFANA_DASHBOARDS_DIRECTORY + ". Add Grafana Dashboard JSONs here.")
 				os.MkdirAll(GRAFANA_DASHBOARDS_DIRECTORY, 0755)
 				log.Println("Adding sample dashboard json " + GRAFANA_DASHBOARDS_DIRECTORY + "/dashboard.json as a reference to get you started.")
-				copy.Copy(perfizHome+"/templates/dashboard.json", GRAFANA_DASHBOARDS_DIRECTORY + "/dashboard.json")
+				copy.Copy(perfizHome+"/templates/dashboard.json", GRAFANA_DASHBOARDS_DIRECTORY+"/dashboard.json")
 			} else {
 				log.Println(GRAFANA_DASHBOARDS_DIRECTORY + " is already present. Skipping.")
 			}
@@ -237,8 +237,32 @@ func main() {
 		},
 	}
 
+	var cmdReset = &cobra.Command{
+		Use:   "reset",
+		Short: "removes project specific grafana and prometheus data",
+		Long:  `removes <your project folder>/perfiz/*_data to reset Grafana, InfluxDB and Prometheus specific to that project`,
+		Args:  cobra.MinimumNArgs(0),
+		Run: func(cmd *cobra.Command, args []string) {
+			dockerNetworkCheck := exec.Command("docker", "network", "inspect", "perfiz-network")
+
+			_, dockerNetworkCheckError := dockerNetworkCheck.Output()
+			if dockerNetworkCheckError == nil {
+				log.Fatalln("Perfiz Containers seem to be running. Please run 'stop' command before running 'reset'.")
+			}
+
+			if !IsDir("./perfiz") {
+				log.Fatalln("Could not find perfiz folder, please run 'reset' command inside your project where the perfiz folder exists.")
+			}
+
+			for _, dataDirPath := range []string{"./perfiz/grafana_data", "./perfiz/influxdb_data", "./perfiz/prometheus_data"} {
+				log.Println("Deleting " + dataDirPath)
+				os.RemoveAll(dataDirPath)
+			}
+		},
+	}
+
 	var rootCmd = &cobra.Command{Use: "perfiz-cli"}
-	rootCmd.AddCommand(cmdInit, cmdStart, cmdTest, cmdStop)
+	rootCmd.AddCommand(cmdInit, cmdStart, cmdTest, cmdStop, cmdReset)
 	rootCmd.Execute()
 }
 
