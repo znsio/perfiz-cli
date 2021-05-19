@@ -68,13 +68,8 @@ func main() {
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("Staring Init")
 			perfizHome := getEnvVariable(PERFIZ_HOME_ENV_VARIABLE)
-			_, perfizYmlErr := os.Open(DEFAULT_CONFIG_FILE)
-			if perfizYmlErr != nil {
-				log.Println(DEFAULT_CONFIG_FILE + " not found. Adding template.")
-				copy.Copy(perfizHome+"/templates/"+DEFAULT_CONFIG_FILE, "./"+DEFAULT_CONFIG_FILE)
-			} else {
-				log.Println(DEFAULT_CONFIG_FILE + " is already present. Skipping.")
-			}
+			addTemplateIfMissing(perfizHome, DEFAULT_CONFIG_FILE, "./")
+			addTemplateIfMissing(perfizHome, "gatling.conf", "./perfiz/gatling/")
 			if !IsDir(GRAFANA_DASHBOARDS_DIRECTORY) {
 				log.Println("Creating Grafana Dashboard dir " + GRAFANA_DASHBOARDS_DIRECTORY + ". Add Grafana Dashboard JSONs here.")
 				os.MkdirAll(GRAFANA_DASHBOARDS_DIRECTORY, 0755)
@@ -105,7 +100,7 @@ func main() {
 			_, perfizYmlErr := os.Open(DEFAULT_CONFIG_FILE)
 			if len(args) < 1 {
 				if perfizYmlErr != nil {
-					return errors.New("Default Config: " + DEFAULT_CONFIG_FILE + " not found. Please create " + DEFAULT_CONFIG_FILE + " or provide name of config file as argument. Please see https://github.com/znsio/perfiz for instructions.")
+					return errors.New("Default Config: " + DEFAULT_CONFIG_FILE + " not found. Please create " + DEFAULT_CONFIG_FILE + " or provide name of config file as argument. Please see https://github.com/znsio/perfiz for instructions and / or run 'init' command and perfiz will add a config file template to help you get started.")
 				} else {
 					return nil
 				}
@@ -165,6 +160,12 @@ func main() {
 					},
 				}
 				copy.Copy(gatlingSimulationsDir, perfizHome+"/src/test/scala", onlyScalaSimulationFiles)
+			}
+
+			_, gatlingConfErr := os.Open("./perfiz/gatling/gatling.conf")
+			if gatlingConfErr == nil {
+				log.Println("Copying Gatling Configuration " + "./perfiz/gatling/gatling.conf")
+				copy.Copy("./perfiz/gatling/gatling.conf", perfizHome+"/src/test/resources/gatling.conf")
 			}
 
 			perfizMavenRepo := perfizHome + "/.m2"
@@ -264,6 +265,17 @@ func main() {
 	var rootCmd = &cobra.Command{Use: "perfiz-cli"}
 	rootCmd.AddCommand(cmdInit, cmdStart, cmdTest, cmdStop, cmdReset)
 	rootCmd.Execute()
+}
+
+func addTemplateIfMissing(perfizHome string, filename string, path string) {
+	filePath := path + filename
+	_, fileOpenErr := os.Open(filePath)
+	if fileOpenErr != nil {
+		log.Println(filePath + " not found. Adding template.")
+		copy.Copy(perfizHome+"/templates/"+filename, filePath)
+	} else {
+		log.Println(filePath + " is already present. Skipping.")
+	}
 }
 
 func getGatlingSimulationsDir(workingDir string, config *PerfizConfig) string {
