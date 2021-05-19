@@ -20,6 +20,8 @@ import (
 const (
 	PERFIZ_HOME_ENV_VARIABLE     = "PERFIZ_HOME"
 	DEFAULT_CONFIG_FILE          = "perfiz.yml"
+	GATLING_CONF                 = "gatling.conf"
+	GATLING_CONF_PATH            = "./perfiz/gatling/"
 	GRAFANA_DASHBOARDS_DIRECTORY = "./perfiz/dashboards"
 	PROMETHEUS_CONFIG_DIR        = "./perfiz/prometheus"
 	PROMETHEUS_CONFIG            = PROMETHEUS_CONFIG_DIR + "/prometheus.yml"
@@ -69,7 +71,7 @@ func main() {
 			log.Println("Staring Init")
 			perfizHome := getEnvVariable(PERFIZ_HOME_ENV_VARIABLE)
 			addTemplateIfMissing(perfizHome, DEFAULT_CONFIG_FILE, "./")
-			addTemplateIfMissing(perfizHome, "gatling.conf", "./perfiz/gatling/")
+			addTemplateIfMissing(perfizHome, GATLING_CONF, GATLING_CONF_PATH)
 			if !IsDir(GRAFANA_DASHBOARDS_DIRECTORY) {
 				log.Println("Creating Grafana Dashboard dir " + GRAFANA_DASHBOARDS_DIRECTORY + ". Add Grafana Dashboard JSONs here.")
 				os.MkdirAll(GRAFANA_DASHBOARDS_DIRECTORY, 0755)
@@ -162,10 +164,10 @@ func main() {
 				copy.Copy(gatlingSimulationsDir, perfizHome+"/src/test/scala", onlyScalaSimulationFiles)
 			}
 
-			_, gatlingConfErr := os.Open("./perfiz/gatling/gatling.conf")
+			_, gatlingConfErr := os.Open(GATLING_CONF_PATH + GATLING_CONF)
 			if gatlingConfErr == nil {
-				log.Println("Copying Gatling Configuration " + "./perfiz/gatling/gatling.conf")
-				copy.Copy("./perfiz/gatling/gatling.conf", perfizHome+"/src/test/resources/gatling.conf")
+				log.Println("Copying Gatling Configuration " + GATLING_CONF_PATH + GATLING_CONF)
+				copy.Copy(GATLING_CONF_PATH+GATLING_CONF, perfizHome+"/src/test/resources/"+GATLING_CONF)
 			}
 
 			perfizMavenRepo := perfizHome + "/.m2"
