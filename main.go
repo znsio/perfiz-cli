@@ -26,6 +26,8 @@ const (
 	GRAFANA_DASHBOARDS_DIRECTORY = "./perfiz/dashboards"
 	PROMETHEUS_CONFIG_DIR        = "./perfiz/prometheus"
 	PROMETHEUS_CONFIG            = PROMETHEUS_CONFIG_DIR + "/prometheus.yml"
+	DOCKER_MAJOR_VERSION         = 20
+	DOCKER_MINOR_VERSION         = 10
 )
 
 type PerfizConfig struct {
@@ -43,7 +45,7 @@ func main() {
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("Starting Perfiz...")
 			perfizHome := getEnvVariable(PERFIZ_HOME_ENV_VARIABLE)
-			checkIfCommandExists("docker")
+			checkIfCommandExists("docker", DOCKER_MAJOR_VERSION, DOCKER_MINOR_VERSION)
 
 			workingDir, _ := os.Getwd()
 			log.Println("Writing working directory to docker-compose .env: " + workingDir)
@@ -116,7 +118,7 @@ func main() {
 		Run: func(cmd *cobra.Command, args []string) {
 			workingDir, _ := os.Getwd()
 			perfizHome := getEnvVariable(PERFIZ_HOME_ENV_VARIABLE)
-			checkIfCommandExists("docker")
+			checkIfCommandExists("docker", DOCKER_MAJOR_VERSION, DOCKER_MINOR_VERSION)
 
 			var configFile string
 			if len(args) == 1 {
@@ -294,7 +296,7 @@ func logStreamingOutput(output io.ReadCloser) {
 	}
 }
 
-func checkIfCommandExists(command string) {
+func checkIfCommandExists(command string, requiredMajorVersion int, requiredMinorVersion int) {
 	path, err := exec.LookPath(command)
 	if err != nil {
 		log.Fatalln(command+" not found, please install. Error: ", err)
@@ -306,7 +308,7 @@ func checkIfCommandExists(command string) {
 
 	versionOutput, versionError := version.Output()
 	if versionError != nil {
-		log.Fatalln("Unable to check " + command + " version, please check your installation.")
+		log.Fatalln("Unable to run " + command + " --version, please check your installation.")
 	}
 
 	versionString := string(versionOutput)
@@ -315,8 +317,9 @@ func checkIfCommandExists(command string) {
 	versionComponents := strings.Split(versionWithoutBuild, ".")
 	majorVersion, _ := strconv.Atoi(versionComponents[0])
 	minorVersion, _ := strconv.Atoi(versionComponents[1])
-	if majorVersion < 20 || minorVersion < 10 {
-		log.Fatalln("Current version of " + command + " is " + versionWithoutBuild + ". Min version required 20.10.0.")
+	if majorVersion < requiredMajorVersion || minorVersion < requiredMinorVersion {
+		log.Fatalln("Current version of " + command + " is " + versionWithoutBuild + "." +
+			" Min version required: " + strconv.Itoa(requiredMajorVersion) + "." + strconv.Itoa(requiredMinorVersion) + ".0")
 	}
 }
 
