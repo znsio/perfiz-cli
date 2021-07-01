@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -43,14 +44,13 @@ func main() {
 			log.Println("Starting Perfiz...")
 			perfizHome := getEnvVariable(PERFIZ_HOME_ENV_VARIABLE)
 			checkIfCommandExists("docker")
-			checkIfCommandExists("docker-compose")
 
 			workingDir, _ := os.Getwd()
 			log.Println("Writing working directory to docker-compose .env: " + workingDir)
 			ioutil.WriteFile(perfizHome+"/.env", []byte("PROJECT_DIR="+workingDir), 0755)
 
 			log.Println("Starting Perfiz Docker Containers...")
-			dockerComposeUp := exec.Command("docker-compose", "-f", perfizHome+"/docker-compose.yml", "up", "-d")
+			dockerComposeUp := exec.Command("docker", "compose", "-f", perfizHome+"/docker-compose.yml", "up", "-d")
 			dockerComposeUpOutput, dockerComposeUpError := dockerComposeUp.CombinedOutput()
 			if dockerComposeUpError != nil {
 				log.Println(fmt.Sprint(dockerComposeUpError) + ": " + string(dockerComposeUpOutput))
@@ -117,7 +117,6 @@ func main() {
 			workingDir, _ := os.Getwd()
 			perfizHome := getEnvVariable(PERFIZ_HOME_ENV_VARIABLE)
 			checkIfCommandExists("docker")
-			checkIfCommandExists("docker-compose")
 
 			var configFile string
 			if len(args) == 1 {
@@ -231,7 +230,7 @@ func main() {
 			} else {
 				log.Println(PERFIZ_HOME_ENV_VARIABLE + ": " + perfizHome)
 			}
-			dockerComposeDown := exec.Command("docker-compose", "-f", perfizHome+"/docker-compose.yml", "down")
+			dockerComposeDown := exec.Command("docker", "compose", "-f", perfizHome+"/docker-compose.yml", "down")
 			dockerComposeDownOutput, dockerComposeDownError := dockerComposeDown.Output()
 			if dockerComposeDownError != nil {
 				log.Fatalln(dockerComposeDownError.Error())
@@ -302,6 +301,23 @@ func checkIfCommandExists(command string) {
 	}
 
 	log.Println(command + " command located: " + path)
+
+	version := exec.Command(command, "--version")
+
+	versionOutput, versionError := version.Output()
+	if versionError != nil {
+		log.Fatalln("Unable to check " + command + " version, please check your installation.")
+	}
+
+	versionString := string(versionOutput)
+	buildRegex := regexp.MustCompile(`, .*\n`)
+	versionWithoutBuild := buildRegex.ReplaceAllString(strings.ReplaceAll(versionString, "Docker version ", ""), ``)
+	versionComponents := strings.Split(versionWithoutBuild, ".")
+	majorVersion, _ := strconv.Atoi(versionComponents[0])
+	minorVersion, _ := strconv.Atoi(versionComponents[1])
+	if majorVersion < 20 || minorVersion < 10 {
+		log.Fatalln("Current version of " + command + " is " + versionWithoutBuild + ". Min version required 20.10.0.")
+	}
 }
 
 func getEnvVariable(envVariableName string) string {
