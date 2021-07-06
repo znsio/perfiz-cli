@@ -60,6 +60,8 @@ func main() {
 
 			log.Println("Starting Perfiz Docker Containers...")
 			dockerComposeUp := exec.Command("docker", "compose", "-f", perfizHome+"/docker-compose.yml", "--env-file", perfizHome+DOCOME_COMPOSE_ENV_FILE, "up", "-d")
+			log.Println("Docker Compose Command: ")
+			log.Println(dockerComposeUp)
 			dockerComposeUpOutput, dockerComposeUpError := dockerComposeUp.CombinedOutput()
 			if dockerComposeUpError != nil {
 				log.Println(fmt.Sprint(dockerComposeUpError) + ": " + string(dockerComposeUpOutput))
@@ -240,6 +242,8 @@ func main() {
 				log.Println(PERFIZ_HOME_ENV_VARIABLE + ": " + perfizHome)
 			}
 			dockerComposeDown := exec.Command("docker", "compose", "-f", perfizHome+"/docker-compose.yml", "--env-file", perfizHome+DOCOME_COMPOSE_ENV_FILE, "down")
+			log.Println("Docker Compose Command: ")
+			log.Println(dockerComposeDown)
 			dockerComposeDownOutput, dockerComposeDownError := dockerComposeDown.Output()
 			if dockerComposeDownError != nil {
 				log.Fatalln(dockerComposeDownError.Error())
