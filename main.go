@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 )
@@ -48,8 +49,13 @@ func main() {
 			checkIfCommandExists("docker", DOCKER_MAJOR_VERSION, DOCKER_MINOR_VERSION)
 
 			workingDir, _ := os.Getwd()
-			log.Println("Writing working directory to docker-compose .env: " + workingDir)
-			ioutil.WriteFile(perfizHome+"/.env", []byte("PROJECT_DIR="+workingDir), 0755)
+			log.Println("Writing PROJECT_DIR=" + workingDir + " to docker-compose env file: " + perfizHome + "/.env")
+			err := ioutil.WriteFile(perfizHome+"/.env", []byte("PROJECT_DIR="+workingDir), 0755)
+
+			if err != nil {
+				log.Println("Error writing docker-compose .env: " + perfizHome + "/.env")
+				log.Fatalln(err)
+			}
 
 			log.Println("Starting Perfiz Docker Containers...")
 			dockerComposeUp := exec.Command("docker", "compose", "-f", perfizHome+"/docker-compose.yml", "up", "-d")
@@ -265,8 +271,28 @@ func main() {
 		},
 	}
 
+	var cmdDiagnostics = &cobra.Command{
+		Use:   "diagnostics",
+		Short: "gathers setup information to report issues",
+		Long:  `Gathers setup information to report issues.`,
+		Args:  cobra.MinimumNArgs(0),
+		Run: func(cmd *cobra.Command, args []string) {
+			log.Println("*************** RUNNING DIAGNOSTICS ******************")
+			perfizHome := getEnvVariable(PERFIZ_HOME_ENV_VARIABLE)
+			perfizVersion, perfizVersionErr := ioutil.ReadFile(perfizHome + "/.VERSION" )
+			if(perfizVersionErr != nil) {
+				log.Println("Unable to read Perfiz Version File: " + perfizHome + "/.VERSION")
+			}
+			log.Println("Perfiz Version: " + string(perfizVersion))
+			log.Println("Docker version: " + getCommandVersion("docker"))
+			log.Println("OS: " + runtime.GOOS)
+			log.Println("Arch: " + runtime.GOARCH)
+			log.Println("************* DIAGNOSTICS COMPLETED ******************")
+		},
+	}
+
 	var rootCmd = &cobra.Command{Use: "perfiz-cli"}
-	rootCmd.AddCommand(cmdInit, cmdStart, cmdTest, cmdStop, cmdReset)
+	rootCmd.AddCommand(cmdInit, cmdStart, cmdTest, cmdStop, cmdReset, cmdDiagnostics)
 	rootCmd.Execute()
 }
 
@@ -297,6 +323,19 @@ func logStreamingOutput(output io.ReadCloser) {
 }
 
 func checkIfCommandExists(command string, requiredMajorVersion int, requiredMinorVersion int) {
+	versionString := getCommandVersion(command)
+	buildRegex := regexp.MustCompile(`, .*\n`)
+	versionWithoutBuild := buildRegex.ReplaceAllString(strings.ReplaceAll(versionString, "Docker version ", ""), ``)
+	versionComponents := strings.Split(versionWithoutBuild, ".")
+	majorVersion, _ := strconv.Atoi(versionComponents[0])
+	minorVersion, _ := strconv.Atoi(versionComponents[1])
+	if majorVersion < requiredMajorVersion || minorVersion < requiredMinorVersion {
+		log.Fatalln("Current version of " + command + " is " + versionWithoutBuild + "." +
+			" Min version required: " + strconv.Itoa(requiredMajorVersion) + "." + strconv.Itoa(requiredMinorVersion) + ".0")
+	}
+}
+
+func getCommandVersion(command string) string {
 	path, err := exec.LookPath(command)
 	if err != nil {
 		log.Fatalln(command+" not found, please install. Error: ", err)
@@ -312,15 +351,7 @@ func checkIfCommandExists(command string, requiredMajorVersion int, requiredMino
 	}
 
 	versionString := string(versionOutput)
-	buildRegex := regexp.MustCompile(`, .*\n`)
-	versionWithoutBuild := buildRegex.ReplaceAllString(strings.ReplaceAll(versionString, "Docker version ", ""), ``)
-	versionComponents := strings.Split(versionWithoutBuild, ".")
-	majorVersion, _ := strconv.Atoi(versionComponents[0])
-	minorVersion, _ := strconv.Atoi(versionComponents[1])
-	if majorVersion < requiredMajorVersion || minorVersion < requiredMinorVersion {
-		log.Fatalln("Current version of " + command + " is " + versionWithoutBuild + "." +
-			" Min version required: " + strconv.Itoa(requiredMajorVersion) + "." + strconv.Itoa(requiredMinorVersion) + ".0")
-	}
+	return versionString
 }
 
 func getEnvVariable(envVariableName string) string {
