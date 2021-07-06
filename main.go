@@ -27,6 +27,7 @@ const (
 	GRAFANA_DASHBOARDS_DIRECTORY = "./perfiz/dashboards"
 	PROMETHEUS_CONFIG_DIR        = "./perfiz/prometheus"
 	PROMETHEUS_CONFIG            = PROMETHEUS_CONFIG_DIR + "/prometheus.yml"
+	DOCOME_COMPOSE_ENV_FILE      = "/.env"
 	DOCKER_MAJOR_VERSION         = 20
 	DOCKER_MINOR_VERSION         = 10
 )
@@ -49,16 +50,16 @@ func main() {
 			checkIfCommandExists("docker", DOCKER_MAJOR_VERSION, DOCKER_MINOR_VERSION)
 
 			workingDir, _ := os.Getwd()
-			log.Println("Writing PROJECT_DIR=" + workingDir + " to docker-compose env file: " + perfizHome + "/.env")
-			err := ioutil.WriteFile(perfizHome+"/.env", []byte("PROJECT_DIR="+workingDir), 0755)
+			log.Println("Writing PROJECT_DIR=" + workingDir + " to docker-compose env file: " + perfizHome + DOCOME_COMPOSE_ENV_FILE)
+			err := ioutil.WriteFile(perfizHome+DOCOME_COMPOSE_ENV_FILE, []byte("PROJECT_DIR="+workingDir), 0755)
 
 			if err != nil {
-				log.Println("Error writing docker-compose .env: " + perfizHome + "/.env")
+				log.Println("Error writing docker-compose .env: " + perfizHome + DOCOME_COMPOSE_ENV_FILE)
 				log.Fatalln(err)
 			}
 
 			log.Println("Starting Perfiz Docker Containers...")
-			dockerComposeUp := exec.Command("docker", "compose", "-f", perfizHome+"/docker-compose.yml", "up", "-d")
+			dockerComposeUp := exec.Command("docker", "compose", "-f", perfizHome+"/docker-compose.yml", "--env-file", perfizHome+DOCOME_COMPOSE_ENV_FILE, "up", "-d")
 			dockerComposeUpOutput, dockerComposeUpError := dockerComposeUp.CombinedOutput()
 			if dockerComposeUpError != nil {
 				log.Println(fmt.Sprint(dockerComposeUpError) + ": " + string(dockerComposeUpOutput))
@@ -238,7 +239,7 @@ func main() {
 			} else {
 				log.Println(PERFIZ_HOME_ENV_VARIABLE + ": " + perfizHome)
 			}
-			dockerComposeDown := exec.Command("docker", "compose", "-f", perfizHome+"/docker-compose.yml", "down")
+			dockerComposeDown := exec.Command("docker", "compose", "-f", perfizHome+"/docker-compose.yml", "--env-file", perfizHome+DOCOME_COMPOSE_ENV_FILE, "down")
 			dockerComposeDownOutput, dockerComposeDownError := dockerComposeDown.Output()
 			if dockerComposeDownError != nil {
 				log.Fatalln(dockerComposeDownError.Error())
@@ -279,8 +280,8 @@ func main() {
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("*************** RUNNING DIAGNOSTICS ******************")
 			perfizHome := getEnvVariable(PERFIZ_HOME_ENV_VARIABLE)
-			perfizVersion, perfizVersionErr := ioutil.ReadFile(perfizHome + "/.VERSION" )
-			if(perfizVersionErr != nil) {
+			perfizVersion, perfizVersionErr := ioutil.ReadFile(perfizHome + "/.VERSION")
+			if perfizVersionErr != nil {
 				log.Println("Unable to read Perfiz Version File: " + perfizHome + "/.VERSION")
 			}
 			log.Println("Perfiz Version: " + string(perfizVersion))
