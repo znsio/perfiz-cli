@@ -283,12 +283,8 @@ func main() {
 		Args:  cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("*************** RUNNING DIAGNOSTICS ******************")
-			perfizHome := getEnvVariable(PERFIZ_HOME_ENV_VARIABLE)
-			perfizVersion, perfizVersionErr := ioutil.ReadFile(perfizHome + "/.VERSION")
-			if perfizVersionErr != nil {
-				log.Println("Unable to read Perfiz Version File: " + perfizHome + "/.VERSION")
-			}
-			log.Println("Perfiz Version: " + string(perfizVersion))
+			perfizVersion := getPerfizVersion()
+			log.Println("Perfiz Version: " + perfizVersion)
 			log.Println("Docker version: " + getCommandVersion("docker"))
 			log.Println("OS: " + runtime.GOOS)
 			log.Println("Arch: " + runtime.GOARCH)
@@ -296,9 +292,31 @@ func main() {
 		},
 	}
 
+	var versionCmd = &cobra.Command{
+		Use:   "version",
+		Short: "Print the version number of Perfiz",
+		Long:  `All software has versions. This is Perfiz's`,
+		Run: func(cmd *cobra.Command, args []string) {
+			var perfizVersion = getPerfizVersion()
+			fmt.Println("********** PERFIZ VERSION **********")
+			fmt.Println("perfiz " + perfizVersion)
+			fmt.Println("perfiz-cli 0.0.16")
+			fmt.Println("************************************")
+		},
+	}
+
 	var rootCmd = &cobra.Command{Use: "perfiz-cli"}
-	rootCmd.AddCommand(cmdInit, cmdStart, cmdTest, cmdStop, cmdReset, cmdDiagnostics)
+	rootCmd.AddCommand(cmdInit, cmdStart, cmdTest, cmdStop, cmdReset, cmdDiagnostics, versionCmd)
 	rootCmd.Execute()
+}
+
+func getPerfizVersion() string {
+	perfizHome := getEnvVariable(PERFIZ_HOME_ENV_VARIABLE)
+	perfizVersion, perfizVersionErr := ioutil.ReadFile(perfizHome + "/.VERSION")
+	if perfizVersionErr != nil {
+		log.Println("Unable to read Perfiz Version File: " + perfizHome + "/.VERSION")
+	}
+	return string(perfizVersion)
 }
 
 func addTemplateIfMissing(perfizHome string, filename string, path string) {
