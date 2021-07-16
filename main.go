@@ -30,6 +30,9 @@ const (
 	DOCOME_COMPOSE_ENV_FILE      = "/.env"
 	DOCKER_MAJOR_VERSION         = 20
 	DOCKER_MINOR_VERSION         = 10
+	DOCKER_COMPOSE_MAJOR_VERSION = 1
+	DOCKER_COMPOSE_MINOR_VERSION = 29
+	PERFIZ_CLI_VERSION           = "0.0.18"
 )
 
 type PerfizConfig struct {
@@ -48,6 +51,7 @@ func main() {
 			log.Println("Starting Perfiz...")
 			perfizHome := getEnvVariable(PERFIZ_HOME_ENV_VARIABLE)
 			checkIfCommandExists("docker", DOCKER_MAJOR_VERSION, DOCKER_MINOR_VERSION)
+			checkIfCommandExists("docker-compose", DOCKER_COMPOSE_MAJOR_VERSION, DOCKER_COMPOSE_MINOR_VERSION)
 
 			workingDir, _ := os.Getwd()
 			log.Println("Writing PROJECT_DIR=" + workingDir + " to docker-compose env file: " + perfizHome + DOCOME_COMPOSE_ENV_FILE)
@@ -59,7 +63,7 @@ func main() {
 			}
 
 			log.Println("Starting Perfiz Docker Containers...")
-			dockerComposeUp := exec.Command("docker", "compose", "--file", perfizHome+"/docker-compose.yml", "--env-file", perfizHome+DOCOME_COMPOSE_ENV_FILE, "up", "-d")
+			dockerComposeUp := exec.Command("docker-compose", "--file", perfizHome+"/docker-compose.yml", "--env-file", perfizHome+DOCOME_COMPOSE_ENV_FILE, "up", "-d")
 			log.Println("Docker Compose Command: ")
 			log.Println(dockerComposeUp)
 			dockerComposeUpOutput, dockerComposeUpError := dockerComposeUp.CombinedOutput()
@@ -128,6 +132,7 @@ func main() {
 			workingDir, _ := os.Getwd()
 			perfizHome := getEnvVariable(PERFIZ_HOME_ENV_VARIABLE)
 			checkIfCommandExists("docker", DOCKER_MAJOR_VERSION, DOCKER_MINOR_VERSION)
+			checkIfCommandExists("docker-compose", DOCKER_COMPOSE_MAJOR_VERSION, DOCKER_COMPOSE_MINOR_VERSION)
 
 			var configFile string
 			if len(args) == 1 {
@@ -241,7 +246,7 @@ func main() {
 			} else {
 				log.Println(PERFIZ_HOME_ENV_VARIABLE + ": " + perfizHome)
 			}
-			dockerComposeDown := exec.Command("docker", "compose", "--file", perfizHome+"/docker-compose.yml", "--env-file", perfizHome+DOCOME_COMPOSE_ENV_FILE, "down")
+			dockerComposeDown := exec.Command("docker-compose", "--file", perfizHome+"/docker-compose.yml", "--env-file", perfizHome+DOCOME_COMPOSE_ENV_FILE, "down")
 			log.Println("Docker Compose Command: ")
 			log.Println(dockerComposeDown)
 			dockerComposeDownOutput, dockerComposeDownError := dockerComposeDown.Output()
@@ -285,7 +290,9 @@ func main() {
 			log.Println("*************** RUNNING DIAGNOSTICS ******************")
 			perfizVersion := getPerfizVersion()
 			log.Println("Perfiz Version: " + perfizVersion)
+			log.Println("Perfiz Cli Version: " + PERFIZ_CLI_VERSION)
 			log.Println("Docker version: " + getCommandVersion("docker"))
+			log.Println("docker-compose version: " + getCommandVersion("docker-compose"))
 			log.Println("OS: " + runtime.GOOS)
 			log.Println("Arch: " + runtime.GOARCH)
 			log.Println("************* DIAGNOSTICS COMPLETED ******************")
@@ -300,7 +307,7 @@ func main() {
 			var perfizVersion = getPerfizVersion()
 			fmt.Println("********** PERFIZ VERSION **********")
 			fmt.Println("perfiz " + perfizVersion)
-			fmt.Println("perfiz-cli 0.0.16")
+			fmt.Println("perfiz-cli " + PERFIZ_CLI_VERSION)
 			fmt.Println("************************************")
 		},
 	}
@@ -347,8 +354,10 @@ func logStreamingOutput(output io.ReadCloser) {
 
 func checkIfCommandExists(command string, requiredMajorVersion int, requiredMinorVersion int) {
 	versionString := getCommandVersion(command)
+	commandRegex := regexp.MustCompile(`^.* version `)
+	versionStringWithoutCommand := commandRegex.ReplaceAllString(versionString, ``)
 	buildRegex := regexp.MustCompile(`, .*\n`)
-	versionWithoutBuild := buildRegex.ReplaceAllString(strings.ReplaceAll(versionString, "Docker version ", ""), ``)
+	versionWithoutBuild := buildRegex.ReplaceAllString(strings.ReplaceAll(versionStringWithoutCommand, "Docker version ", ""), ``)
 	versionComponents := strings.Split(versionWithoutBuild, ".")
 	majorVersion, _ := strconv.Atoi(versionComponents[0])
 	minorVersion, _ := strconv.Atoi(versionComponents[1])
