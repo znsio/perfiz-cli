@@ -106,6 +106,7 @@ func main() {
 			log.Println("Init Completed")
 			log.Println("Please add below line to your .gitignore to avoid checking in Prometheus and Grafana Data to version control")
 			log.Println("perfiz/*_data")
+			log.Println("perfiz/gatling/results")
 		},
 	}
 
@@ -204,6 +205,7 @@ func main() {
 
 			dockerCommandArguments := []string{"run", "--rm", "--name", "perfiz-gatling",
 				"-v", perfizMavenRepo + ":/root/.m2",
+				"-v", workingDir + "/" + "perfiz/gatling/results" + ":/usr/src/performance-testing/results",
 				"-v", perfizHome + ":/usr/src/performance-testing",
 				"-v", karateFeaturesDir + ":/usr/src/karate-features",
 				"-v", workingDir + "/" + configFile + ":/usr/src/perfiz.yml",
