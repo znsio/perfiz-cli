@@ -22,10 +22,12 @@ import (
 const (
 	PERFIZ_HOME_ENV_VARIABLE     = "PERFIZ_HOME"
 	DEFAULT_CONFIG_FILE          = "perfiz.yml"
+	PERFIZ_FOLDER                = "./perfiz"
 	GATLING_CONF                 = "gatling.conf"
-	GATLING_CONF_PATH            = "./perfiz/gatling/"
-	GRAFANA_DASHBOARDS_DIRECTORY = "./perfiz/dashboards"
-	PROMETHEUS_CONFIG_DIR        = "./perfiz/prometheus"
+	GATLING_CONF_PATH            = PERFIZ_FOLDER + "/gatling/"
+	GATLING_RESULTS_DIR          = "perfiz/gatling_data/results"
+	GRAFANA_DASHBOARDS_DIRECTORY = PERFIZ_FOLDER + "/dashboards"
+	PROMETHEUS_CONFIG_DIR        = PERFIZ_FOLDER + "/prometheus"
 	PROMETHEUS_CONFIG            = PROMETHEUS_CONFIG_DIR + "/prometheus.yml"
 	DOCOME_COMPOSE_ENV_FILE      = "/.env"
 	DOCKER_MAJOR_VERSION         = 20
@@ -103,6 +105,8 @@ func main() {
 			} else {
 				log.Println(PROMETHEUS_CONFIG + " is already present. Skipping.")
 			}
+			log.Println("Setting ./perfiz permissions to 0777 to allow Docker containers to access its contents")
+			os.Chmod(PERFIZ_FOLDER, 0777)
 			log.Println("Init Completed")
 			log.Println("Please add below line to your .gitignore to avoid checking in Prometheus and Grafana Data to version control")
 			log.Println("perfiz/*_data")
@@ -204,7 +208,7 @@ func main() {
 
 			dockerCommandArguments := []string{"run", "--rm", "--name", "perfiz-gatling",
 				"-v", perfizMavenRepo + ":/root/.m2",
-				"-v", workingDir + "/" + "perfiz/gatling_data/results" + ":/usr/src/performance-testing/results",
+				"-v", workingDir + "/" + GATLING_RESULTS_DIR + ":/usr/src/performance-testing/results",
 				"-v", perfizHome + ":/usr/src/performance-testing",
 				"-v", karateFeaturesDir + ":/usr/src/karate-features",
 				"-v", workingDir + "/" + configFile + ":/usr/src/perfiz.yml",
@@ -271,11 +275,11 @@ func main() {
 				log.Fatalln("Perfiz Containers seem to be running. Please run 'stop' command before running 'reset'.")
 			}
 
-			if !IsDir("./perfiz") {
+			if !IsDir(PERFIZ_FOLDER) {
 				log.Fatalln("Could not find perfiz folder, please run 'reset' command inside your project where the perfiz folder exists.")
 			}
 
-			for _, dataDirPath := range []string{"./perfiz/grafana_data", "./perfiz/influxdb_data", "./perfiz/prometheus_data"} {
+			for _, dataDirPath := range []string{PERFIZ_FOLDER + "/grafana_data", PERFIZ_FOLDER + "/influxdb_data", PERFIZ_FOLDER + "/prometheus_data", PERFIZ_FOLDER + "/gatling_data"} {
 				log.Println("Deleting " + dataDirPath)
 				os.RemoveAll(dataDirPath)
 			}
@@ -296,6 +300,12 @@ func main() {
 			log.Println("docker-compose version: " + getCommandVersion("docker-compose"))
 			log.Println("OS: " + runtime.GOOS)
 			log.Println("Arch: " + runtime.GOARCH)
+			perfizFolderStats, perfizFolderStatsErr := os.Stat(PERFIZ_FOLDER)
+			if perfizFolderStatsErr == nil {
+				log.Println("Perfiz folder permissions: " + perfizFolderStats.Mode().String())
+			} else {
+				log.Println("Error reading permissions of Perfiz Folder. " + perfizFolderStatsErr.Error())
+			}
 			log.Println("************* DIAGNOSTICS COMPLETED ******************")
 		},
 	}
