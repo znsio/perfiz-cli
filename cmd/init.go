@@ -31,7 +31,7 @@ var cmdInit = &cobra.Command{
 			log.Println("Adding sample dashboard json " + constants.GRAFANA_DASHBOARDS_DIRECTORY + "/dashboard.json as a reference to get you started.")
 			copy.Copy(perfizHome+"/templates/dashboard.json", constants.GRAFANA_DASHBOARDS_DIRECTORY+"/dashboard.json")
 		} else {
-			log.Println(constants.GRAFANA_DASHBOARDS_DIRECTORY + " is already present. Skipping.")
+			log.Println(constants.GRAFANA_DASHBOARDS_DIRECTORY + constants.SKIP_TEMPLATE_MESSAGE)
 		}
 		_, prometheusConfigErr := os.Open(constants.PROMETHEUS_CONFIG)
 		if prometheusConfigErr != nil {
@@ -39,7 +39,7 @@ var cmdInit = &cobra.Command{
 			os.MkdirAll(constants.PROMETHEUS_CONFIG_DIR, 0755)
 			copy.Copy(perfizHome+"/templates/prometheus.yml", constants.PROMETHEUS_CONFIG)
 		} else {
-			log.Println(constants.PROMETHEUS_CONFIG + " is already present. Skipping.")
+			log.Println(constants.PROMETHEUS_CONFIG + constants.SKIP_TEMPLATE_MESSAGE)
 		}
 		log.Println("Setting ./perfiz permissions to 0777 to allow Docker containers to access its contents")
 		os.Chmod(constants.PERFIZ_FOLDER, 0777)
@@ -56,6 +56,6 @@ func addTemplateIfMissing(perfizHome string, filename string, path string) {
 		log.Println(filePath + " not found. Adding template.")
 		copy.Copy(perfizHome+"/templates/"+filename, filePath)
 	} else {
-		log.Println(filePath + " is already present. Skipping.")
+		log.Println(filePath + constants.SKIP_TEMPLATE_MESSAGE)
 	}
 }
