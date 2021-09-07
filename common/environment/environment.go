@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"os/user"
 	"regexp"
 	"strconv"
 	"strings"
@@ -50,4 +51,13 @@ func GetCommandVersion(command string) string {
 
 	versionString := string(versionOutput)
 	return versionString
+}
+
+func GetUserIdAndGroupId() (string, string) {
+	current, err := user.Current()
+	if err != nil {
+		log.Println("Error getting current user: " + err.Error())
+		log.Fatalln(err)
+	}
+	return current.Uid, current.Gid
 }

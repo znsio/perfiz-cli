@@ -26,14 +26,7 @@ var cmdStart = &cobra.Command{
 		env.CheckIfCommandExists("docker", constants.DOCKER_MAJOR_VERSION, constants.DOCKER_MINOR_VERSION)
 		env.CheckIfCommandExists("docker-compose", constants.DOCKER_COMPOSE_MAJOR_VERSION, constants.DOCKER_COMPOSE_MINOR_VERSION)
 
-		workingDir, _ := os.Getwd()
-		log.Println("Writing PROJECT_DIR=" + workingDir + " to docker-compose env file: " + perfizHome + constants.DOCKER_COMPOSE_ENV_FILE)
-		err := ioutil.WriteFile(perfizHome+constants.DOCKER_COMPOSE_ENV_FILE, []byte("PROJECT_DIR="+workingDir), 0755)
-
-		if err != nil {
-			log.Println("Error writing docker-compose .env: " + perfizHome + constants.DOCKER_COMPOSE_ENV_FILE)
-			log.Fatalln(err)
-		}
+		createDockerEnvFile(perfizHome)
 
 		log.Println("Starting Perfiz Docker Containers...")
 		dockerComposeUp := exec.Command("docker-compose", "--file", perfizHome+"/docker-compose.yml", "--env-file", perfizHome+constants.DOCKER_COMPOSE_ENV_FILE, "up", "-d")
@@ -47,4 +40,18 @@ var cmdStart = &cobra.Command{
 		log.Println(string(dockerComposeUpOutput))
 		log.Println("Navigate to http://localhost:3000 for Grafana")
 	},
+}
+
+func createDockerEnvFile(perfizHome string) {
+	uid, gid := env.GetUserIdAndGroupId()
+	workingDir, _ := os.Getwd()
+	dockerEnvFileContents := []byte("PROJECT_DIR=" + workingDir + "\nUID=" + uid + "\nGID=" + gid + "\n")
+	log.Println("Writing to docker-compose env file: " + perfizHome + constants.DOCKER_COMPOSE_ENV_FILE)
+	log.Print(string(dockerEnvFileContents))
+	err := ioutil.WriteFile(perfizHome+constants.DOCKER_COMPOSE_ENV_FILE, dockerEnvFileContents, 0755)
+	if err != nil {
+		log.Println("Error writing docker-compose .env: " + perfizHome + constants.DOCKER_COMPOSE_ENV_FILE)
+		log.Fatalln(err)
+	}
+	log.Println("Done writing to docker-compose env file")
 }
