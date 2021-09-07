@@ -15,7 +15,7 @@ const (
 	DOCKER_MINOR_VERSION         = 10
 	DOCKER_COMPOSE_MAJOR_VERSION = 1
 	DOCKER_COMPOSE_MINOR_VERSION = 29
-	PERFIZ_CLI_VERSION           = "0.0.19"
+	PERFIZ_CLI_VERSION           = "0.0.20"
 
 	SKIP_TEMPLATE_MESSAGE = " is already present. Skipping."
 )
