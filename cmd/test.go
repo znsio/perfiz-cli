@@ -117,16 +117,21 @@ var cmdTest = &cobra.Command{
 
 		log.Println("All checks done.")
 
+		uid, gid := env.GetUserIdAndGroupId()
+
 		dockerCommandArguments := []string{"run", "--rm", "--name", "perfiz-gatling",
-			"-v", perfizMavenRepo + ":/root/.m2",
+			"-v", perfizMavenRepo + ":/var/maven/.m2",
+			"-v", perfizHome + ":/var/maven",
 			"-v", workingDir + "/" + constants.GATLING_RESULTS_DIR + ":/usr/src/performance-testing/results",
 			"-v", perfizHome + ":/usr/src/performance-testing",
 			"-v", karateFeaturesDir + ":/usr/src/karate-features",
 			"-v", workingDir + "/" + configFile + ":/usr/src/perfiz.yml",
 			"-e", "KARATE_FEATURES=/usr/src/karate-features",
+			"-e", "MAVEN_CONFIG=/var/maven/.m2",
 			"-w", "/usr/src/performance-testing",
+			"--user", uid + ":" + gid,
 			"--network", "perfiz-network",
-			"maven:3.6-jdk-8", "mvn", "clean", "test-compile", "gatling:test", "-DPERFIZ=/usr/src/perfiz.yml"}
+			"maven:3.6-jdk-8", "mvn", "clean", "test-compile", "gatling:test", "-DPERFIZ=/usr/src/perfiz.yml", "-Duser.home=/var/maven"}
 
 		if perfizConfig.KarateEnv != "" {
 			log.Println("Setting karate.env to " + perfizConfig.KarateEnv)
