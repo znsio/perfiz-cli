@@ -133,9 +133,19 @@ var cmdTest = &cobra.Command{
 			"--network", "perfiz-network",
 			"maven:3.6-jdk-8", "mvn", "clean", "test-compile", "gatling:test", "-DPERFIZ=/usr/src/perfiz.yml", "-Duser.home=/var/maven"}
 
-		if perfizConfig.KarateEnv != "" {
-			log.Println("Setting karate.env to " + perfizConfig.KarateEnv)
-			dockerCommandArguments = append(dockerCommandArguments, "-Dkarate.env="+perfizConfig.KarateEnv)
+		karateEnv := perfizConfig.KarateEnv
+		if karateEnv != "" {
+			log.Println("Setting karate.env to " + karateEnv)
+			dockerCommandArguments = append(dockerCommandArguments, "-Dkarate.env="+karateEnv)
+		}
+
+		gatlingSimulationClass := perfizConfig.GatlingSimulationClass
+		if gatlingSimulationClass != "" {
+			log.Println("Setting gatling.simulationClass to " + gatlingSimulationClass)
+			dockerCommandArguments = append(dockerCommandArguments, "-Dgatling.simulationClass="+gatlingSimulationClass)
+		} else {
+			log.Println("Setting gatling.simulationClass to " + constants.PERFIZ_GATLING_SIMULATION_CLASS)
+			dockerCommandArguments = append(dockerCommandArguments, "-Dgatling.simulationClass="+constants.PERFIZ_GATLING_SIMULATION_CLASS)
 		}
 
 		dockerRun := exec.Command("docker", dockerCommandArguments...)
