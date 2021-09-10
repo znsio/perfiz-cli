@@ -23,12 +23,14 @@ func CheckIfCommandExists(command string, requiredMajorVersion int, requiredMino
 	versionString := GetCommandVersion(command)
 	commandRegex := regexp.MustCompile(`^.* version `)
 	versionStringWithoutCommand := commandRegex.ReplaceAllString(versionString, ``)
-	buildRegex := regexp.MustCompile(`, .*\n`)
+	buildRegex := regexp.MustCompile(`, .*`)
 	versionWithoutBuild := buildRegex.ReplaceAllString(strings.ReplaceAll(versionStringWithoutCommand, "Docker version ", ""), ``)
-	versionComponents := strings.Split(versionWithoutBuild, ".")
+	releaseCandidateRegex := regexp.MustCompile(`-.*`)
+	versionWithoutReleaseCandidate := releaseCandidateRegex.ReplaceAllString(strings.ReplaceAll(versionWithoutBuild, "v", ""), ``)
+	versionComponents := strings.Split(versionWithoutReleaseCandidate, ".")
 	majorVersion, _ := strconv.Atoi(versionComponents[0])
 	minorVersion, _ := strconv.Atoi(versionComponents[1])
-	if majorVersion < requiredMajorVersion || minorVersion < requiredMinorVersion {
+	if majorVersion < requiredMajorVersion && minorVersion < requiredMinorVersion {
 		log.Fatalln("Current version of " + command + " is " + versionWithoutBuild + "." +
 			" Min version required: " + strconv.Itoa(requiredMajorVersion) + "." + strconv.Itoa(requiredMinorVersion) + ".0")
 	}
