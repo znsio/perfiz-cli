@@ -1,6 +1,8 @@
 package environment
 
 import (
+	"errors"
+	cmd "github.com/znsio/perfiz-cli/common/command"
 	"log"
 	"os"
 	"os/exec"
@@ -20,7 +22,28 @@ func GetEnvVariable(envVariableName string) string {
 }
 
 func CheckIfCommandExists(command string, requiredMajorVersion int, requiredMinorVersion int) {
-	versionString := GetCommandVersion(command)
+	path, err := exec.LookPath(command)
+	if err != nil {
+		log.Fatalln(command+" not found, please install. Error: ", err)
+	}
+
+	log.Println(command + " command located: " + path)
+
+	versionCommand := cmd.Create(command, "--version")
+	versionCheckOkay, err := CheckCommandVersion(versionCommand, requiredMajorVersion, requiredMinorVersion)
+	if !versionCheckOkay {
+		log.Fatalln("Error locating " + command + ":" + err.Error())
+	}
+}
+
+func CheckCommandVersion(version cmd.Command, requiredMajorVersion int, requiredMinorVersion int) (bool, error) {
+	versionOutput, versionError := version.Execute()
+	if versionError != nil {
+		return false, versionError
+	}
+
+	versionString := string(versionOutput)
+
 	commandRegex := regexp.MustCompile(`^.* version `)
 	versionStringWithoutCommand := commandRegex.ReplaceAllString(versionString, ``)
 	buildRegex := regexp.MustCompile(`, .*`)
@@ -30,10 +53,16 @@ func CheckIfCommandExists(command string, requiredMajorVersion int, requiredMino
 	versionComponents := strings.Split(versionWithoutReleaseCandidate, ".")
 	majorVersion, _ := strconv.Atoi(versionComponents[0])
 	minorVersion, _ := strconv.Atoi(versionComponents[1])
-	if majorVersion < requiredMajorVersion && minorVersion < requiredMinorVersion {
-		log.Fatalln("Current version of " + command + " is " + versionWithoutBuild + "." +
-			" Min version required: " + strconv.Itoa(requiredMajorVersion) + "." + strconv.Itoa(requiredMinorVersion) + ".0")
+
+	if majorVersion > requiredMajorVersion {
+		return true, nil
 	}
+	if majorVersion == requiredMajorVersion && minorVersion >= requiredMinorVersion {
+		return true, nil
+	}
+
+	return false, errors.New("Current version is " + versionWithoutBuild + "." +
+		" Min version required: " + strconv.Itoa(requiredMajorVersion) + "." + strconv.Itoa(requiredMinorVersion) + ".0")
 }
 
 func GetCommandVersion(command string) string {
