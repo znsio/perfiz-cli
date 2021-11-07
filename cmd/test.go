@@ -131,7 +131,7 @@ var cmdTest = &cobra.Command{
 			"-w", "/usr/src/performance-testing",
 			"--user", uid + ":" + gid,
 			"--network", "perfiz-network",
-			"maven:3.6-jdk-8", "mvn", "clean", "test-compile", "gatling:test", "-DPERFIZ=/usr/src/perfiz.yml", "-Duser.home=/var/maven"}
+			"maven:3.8-jdk-8", "mvn", "clean", "test-compile", "gatling:test", "-DPERFIZ=/usr/src/perfiz.yml", "-Duser.home=/var/maven"}
 
 		karateEnv := perfizConfig.KarateEnv
 		if karateEnv != "" {
