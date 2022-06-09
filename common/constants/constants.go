@@ -15,7 +15,7 @@ const (
 	DOCKER_MINOR_VERSION            = 10
 	DOCKER_COMPOSE_MAJOR_VERSION    = 1
 	DOCKER_COMPOSE_MINOR_VERSION    = 29
-	PERFIZ_CLI_VERSION              = "0.0.24"
+	PERFIZ_CLI_VERSION              = "0.0.25"
 	PERFIZ_GATLING_SIMULATION_CLASS = "org.znsio.perfiz.PerfizSimulation"
 
 	SKIP_TEMPLATE_MESSAGE = " is already present. Skipping."
